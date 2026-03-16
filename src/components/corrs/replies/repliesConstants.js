@@ -1,0 +1,3 @@
+export const FETCH_REPLIES = "FETCH_REPLIES";
+export const CREATE_REPLY = "CREATE_REPLY";
+export const DELETE_REPLY = "DELETE_REPLY";

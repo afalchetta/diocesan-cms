@@ -1,0 +1,176 @@
+/* Container styling */
+.container {
+  margin-top: 2rem;
+  max-width: 1200px;
+}
+.corr-details-page {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+.corr-main-info {
+  max-width: 100%;
+  margin: 1em auto;
+}
+
+.corr-info-grid .overflow-wrap {
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.details-segment {
+  position: relative;
+}
+
+.corr-details {
+  white-space: pre-wrap;
+  line-height: 1.5;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.toggle-details-button {
+  margin-top: 0.5em;
+}
+
+.assigned-emails-segment .assigned-email-list .overflow-wrap {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-card .overflow-wrap {
+  word-break: break-word;
+}
+
+.status-delete-segment {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1em;
+}
+
+.created-at {
+  margin-top: 1em;
+}
+
+@media (max-width: 768px) {
+  .assigned-emails-segment .assigned-email-list {
+    flex-direction: column;
+  }
+
+  .status-delete-segment {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 768px) {
+  .status-delete-segment {
+    flex-direction: column;
+  }
+}
+
+
+/* CorrMainInfo panel */
+.corr-details-page .corr-main-info {
+  padding: 1.5rem;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.1);
+}
+
+/* Label rows inside CorrMainInfo */
+.corr-details-page .corr-main-info .info-row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+}
+
+.corr-details-page .corr-main-info .info-row strong {
+  min-width: 150px; /* Label width */
+  color: #444;
+}
+
+/* Long text like emails, subjects, addresses wrap nicely */
+.corr-details-page .corr-main-info .info-value {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  flex: 1;
+  color: #333;
+}
+.corr-details {
+  white-space: pre-wrap;
+  line-height: 1.5;
+  max-height: 200px;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.corr-details.expanded {
+  max-height: 2000px; /* effectively removes the height restriction */
+  overflow: visible;
+}
+/* Corr columns wrapper */
+.corr-columns {
+  display: flex;
+  gap: 1rem;             /* space between columns */
+  flex-wrap: wrap;       /* allows stacking on mobile */
+  align-items: stretch;  /* forces children to same height */
+}
+
+/* Make each column stretch to match height of wrapper */
+.corr-columns > .agent-card,
+.corr-columns > .status-delete-segment {
+  flex: 1 1 45%;         /* equal width */
+  min-width: 280px;      /* prevents being too small */
+  height: 100%;          /* forces full height inside flex container */
+  display: flex;
+  flex-direction: column; 
+}
+
+/* Push content to top for Agent card */
+.agent-card .content {
+  flex: 1 1 auto;
+}
+
+/* Push buttons to bottom in Segment */
+.status-delete-segment {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* keeps buttons at bottom */
+  padding: 1em;
+  height: 100%; 
+}
+
+/* Mobile: stack vertically */
+@media (max-width: 768px) {
+  .corr-columns {
+    flex-direction: column;
+  }
+
+  .corr-columns > .agent-card,
+  .corr-columns > .status-delete-segment {
+    flex: 1 1 100%;
+    height: auto;
+  }
+
+  .status-delete-segment {
+    justify-content: flex-start;
+  }
+}
+
+
+
+/* Responsive for smaller screens */
+@media (max-width: 768px) {
+  .corr-details-page .corr-main-info .info-row {
+    flex-direction: column;
+  }
+
+  .corr-details-page .corr-main-info .info-row strong {
+    min-width: 100%;
+    margin-bottom: 0.2rem;
+  }
+}
