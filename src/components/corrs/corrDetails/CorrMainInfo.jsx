@@ -137,7 +137,7 @@ export default function CorrMainInfo({ corr }) {
           color="orange"
           to='#replies'
         >
-          <Icon name="down" />
+          <Icon name="angle down" />
           Replies
         </Button>
       </Segment>
