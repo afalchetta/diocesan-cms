@@ -1,5 +1,5 @@
 // index.js
-
+const functions = require("firebase-functions");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { initializeApp } = require("firebase-admin/app");
@@ -30,6 +30,35 @@ const transporter = nodemailer.createTransport({
   port: 587,
   secure: false,
   auth: { user: FROM_EMAIL, pass: FROM_PASS },
+});
+
+exports.send2FACode = functions.https.onCall(async (data, context) => {
+  const { email, uid } = data;
+  if (!email || !uid) {
+    throw new functions.https.HttpsError("invalid-argument", "Email and UID required");
+  }
+
+  // Generate 6-digit code
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Save in Firestore with expiration (10 minutes)
+  await db.collection("twoFactorCodes").doc(uid).set({
+    code,
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    used: false,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+
+  // Send email via your existing transporter
+  await transporter.sendMail({
+    from: `"DMT CMS" <${FROM_EMAIL}>`,
+    to: email,
+    subject: "Your DMT CMS 2FA Code",
+    text: `Your verification code is: ${code}. It expires in 10 minutes.`,
+  });
+
+  console.log(`✅ 2FA code sent to ${email}`);
+  return { success: true };
 });
 
 exports.sendEmailOnNewCorr = onDocumentCreated("corrs/{corrId}", async (event) => {
@@ -92,6 +121,7 @@ exports.sendEmailOnNewCorr = onDocumentCreated("corrs/{corrId}", async (event) =
 });
 
 
+// Send email when a new reply is added
 exports.sendEmailOnNewReply = onDocumentCreated("replies/{replyId}", async (event) => {
   const snap = event.data;
   const data = snap.data();
@@ -116,37 +146,28 @@ exports.sendEmailOnNewReply = onDocumentCreated("replies/{replyId}", async (even
 
   // Normalize assignedEmails
   let assignedEmails = [];
+  if (Array.isArray(data.assignedEmails)) {
+    assignedEmails = data.assignedEmails;
+  } else if (typeof data.assignedEmails === "string") {
+    assignedEmails = data.assignedEmails.split(",").map(e => e.trim());
+  } else if (Array.isArray(corr.assignedEmails)) {
+    assignedEmails = corr.assignedEmails;
+  }
 
-if (Array.isArray(data.assignedEmails)) {
-  assignedEmails = data.assignedEmails;
-} else if (typeof data.assignedEmails === "string") {
-  assignedEmails = data.assignedEmails.split(",").map(e => e.trim());
-} else if (Array.isArray(corr.assignedEmails)) {
-  assignedEmails = corr.assignedEmails;
-}
-
-  // Always include agentEmail if available
   const agentEmail = data.agentEmail || corr.agentEmail || "";
-
-  // Ensure createdByEmail exists
   const createdByEmail = data.createdByEmail || "";
 
-  // Combine recipients: assignedEmails + agentEmail, exclude duplicates
- const recipients = [...new Set([
-  ...assignedEmails,
-  ...(agentEmail ? [agentEmail] : [])
-])]
-.filter(email => email !== createdByEmail);
+  // Combine recipients and remove duplicates & sender
+  const recipients = [...new Set([
+    ...assignedEmails,
+    ...(agentEmail ? [agentEmail] : [])
+  ])].filter(email => email !== createdByEmail);
 
   if (recipients.length === 0) {
     console.log("⚠ No recipients to notify — skipping email.");
-    console.log("Assigned Emails:", assignedEmails);
-    console.log("Agent Email:", agentEmail);
-    console.log("Created By:", createdByEmail);
     return;
   }
 
-  // Email subject and body
   const subject = `New Reply Added: ${data.subject || corr.subject || "Correspondence Update"}`;
   const body = `
     <h2>New Reply Added</h2>
@@ -161,20 +182,18 @@ if (Array.isArray(data.assignedEmails)) {
   `;
 
   try {
-  await transporter.sendMail({
-    from: FROM_EMAIL,
-    to: recipients,
-    cc: "webguy@camdendiocese.org",
-    subject,
-    html: body,
-  });
-
-  console.log("✅ Email sent to:", recipients);
-} catch (err) {
-  console.error("❌ Failed to send email:", err);
-}
+    await transporter.sendMail({
+      from: FROM_EMAIL,
+      to: recipients,
+      cc: "webguy@camdendiocese.org",
+      subject,
+      html: body,
+    });
+    console.log("✅ Email sent to:", recipients);
+  } catch (err) {
+    console.error("❌ Failed to send email:", err);
+  }
 });
-
 
 
 // -----------------------------
@@ -249,8 +268,12 @@ async function fetchEmails() {
   // ✅ Optional: add the email sender to assignedEmails for future notifications
   replyData.assignedEmails = [...new Set([...replyData.assignedEmails, fromEmail])];
 
-  await db.collection("replies").add(replyData);
-  console.log("✅ Created reply for corr:", corrId);
+  // Inside fetchEmails() where reply is created
+await db.collection("replies").add(replyData);
+console.log("✅ Created reply for corr:", corrId);
+
+// ✅ Send notification email
+await sendEmailOnReply(replyData);
 } else {
                   // --- Create a new corr ---
     const newCorr = {
@@ -297,11 +320,15 @@ await db.collection("corrs").doc(docRef.id).update({ id: docRef.id });
   });
 }
 
-// 🔁 Run every 5 minutes
+// Poll inbox every 5 minutes and create replies
 exports.pollEmails = onSchedule("every 5 minutes", async (event) => {
   console.log("Checking inbox for new emails...");
+
   try {
-    await fetchEmails();
+    await fetchEmails(async (replyData) => {
+      // ✅ Send email notification for this reply
+      await sendEmailOnReply(replyData);
+    });
   } catch (error) {
     console.error("Error fetching emails:", error);
   }

@@ -18,6 +18,7 @@ export default function Corrs() {
   const { corrs } = useSelector((state) => state.corrs);
   const { loading } = useSelector((state) => state.async);
   const { currentUser } = useSelector((state) => state.auth);
+  const { currentUserProfile } = useSelector((state) => state.profile);
 
   // 🔹 Load saved sort preference OR default to dueDate
   const [sortBy, setSortBy] = useState(() => {
@@ -36,13 +37,20 @@ export default function Corrs() {
     deps: [dispatch],
   });
 
-  // 🔹 Permissions
-  const userCanSeeCorr = (c) =>
-    c.agentEmail === currentUser.email ||
-    (c.assignedEmails && c.assignedEmails.includes(currentUser.email)) ||
-    c.createdBy === currentUser.email;
+  //  Permissions
+const userCanSeeCorr = (c) => {
+  // Users with global access
+  if (currentUserProfile?.viewAll) return true;
 
-  // 🔹 Filter open and closed corrs
+  // Standard permissions
+  return (
+    c.agentEmail === currentUser?.email ||
+    c.assignedEmails?.includes(currentUser?.email) ||
+    c.createdBy === currentUser?.email
+  );
+};
+
+  //  Filter open and closed corrs
   const userOpenCorrs = corrs.filter(
     (c) => c.ticketStatus === "open" && userCanSeeCorr(c)
   );
@@ -50,7 +58,7 @@ export default function Corrs() {
     (c) => c.ticketStatus === "closed" && userCanSeeCorr(c)
   );
 
-  // 🔥 Smart sorting for open corrs
+  // Smart sorting for open corrs
   const sortedOpenCorrs = useMemo(() => {
     const priorityOrder = { High: 3, Medium: 2, Low: 1 };
 
@@ -61,13 +69,13 @@ export default function Corrs() {
       const aOverdue = aDue < now;
       const bOverdue = bDue < now;
 
-      // 🔴 Overdue first
+      //  Overdue first
       if (aOverdue !== bOverdue) return bOverdue - aOverdue;
 
-      // 📅 Due date mode
+      //  Due date mode
       if (sortBy === "dueDate") return aDue - bDue;
 
-      // 🔥 Priority mode
+      //  Priority mode
       const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
       if (priorityDiff !== 0) return priorityDiff;
 

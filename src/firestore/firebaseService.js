@@ -9,6 +9,15 @@ export function signInWithEmail(creds) {
 export function signOutFirebase() {
   return firebase.auth().signOut();
 }
+export function sendPasswordReset(email) {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  return firebase
+    .auth()
+    .sendPasswordResetEmail(normalizedEmail, {
+      url: "http://localhost:3000/login", // adjust for prod later
+    });
+}
 
 export function updateUserPassword(creds) {
   const user = firebase.auth().currentUser;

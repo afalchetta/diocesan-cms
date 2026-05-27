@@ -32,6 +32,24 @@ export function verifyAuth() {
   };
 }
 
+export function forgotPassword(email, toast) {
+  return async function () {
+    try {
+
+      toast.success(
+        "If an account exists, a password reset email has been sent."
+      );
+    } catch (error) {
+      // 🔒 Don't expose user existence
+      toast.success(
+        "If an account exists, a password reset email has been sent."
+      );
+
+      console.error(error.message);
+    }
+  };
+}
+
 export function signOutUser() {
   return {
     type: SIGN_OUT_USER,

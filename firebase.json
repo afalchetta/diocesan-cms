@@ -8,6 +8,10 @@
     ],
     "rewrites": [
       {
+        "source": "/send2FACode",
+        "function": "send2FACode"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
